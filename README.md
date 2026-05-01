@@ -1,85 +1,73 @@
-# Supermarket Pro
+# Supermarket Pro (Multi-Tenant SaaS Platform)
 
-A professional, full-stack Supermarket Management System featuring Point of Sale (POS), Inventory Management, and multi-tenant capabilities (Company/Staff management).
+Supermarket Pro is a complete, production-ready, cloud-native Point of Sale and Store Management system built with Next.js 14, Fastify (Node.js), and Supabase PostgreSQL.
 
-This project uses a **Next.js** frontend with a **Fastify** backend, connected to **Supabase**.
-
-## 🚀 Features
-- **Modern Shopify-inspired UI**: Clean, professional design system.
-- **Point of Sale (POS)**: Add items to cart, adjust quantities, and process transactions.
-- **Live Dashboard**: Real-time sales metrics and stock alerts.
-- **Staff Management**: Role-based access control (Superadmin, Admin, Cashier).
-- **Company Management**: Manage multiple stores and subscriptions.
-- **Direct Supabase Integration**: Fast, serverless data fetching.
+## 🌟 Key Features
+- **Multi-Tenant Architecture**: Manage multiple companies, each with isolated data and staff.
+- **Role-Based Access Control**: Strict permissions for Super Admins, Store Admins, and Cashiers.
+- **Robust POS**: Real-time cart calculation, loyalty points redemption, and stock deduction.
+- **GST Billing**: Support for thermal (80mm) and A4 letterhead invoice printing.
+- **Subscriptions**: Tiered billing plans controlling user limits and features.
+- **Security**: Supabase Row Level Security (RLS) combined with JWT backend enforcement.
 
 ---
 
-## 🛠️ Setup & Running Locally
+## 🚀 Setup Instructions
 
-### Prerequisites
-Make sure you have [Node.js](https://nodejs.org/) (v18+) and npm/yarn installed.
-
-### 1. Install Dependencies
-You need to install dependencies for both the backend and frontend.
-
-**Backend:**
-```bash
-cd backend
-npm install
-# Note: tsx is used to run the backend
-```
-
-**Frontend:**
-```bash
-cd frontend
-npm install
-```
+### 1. Database (Supabase)
+1. Create a new project on [Supabase](https://supabase.com).
+2. Go to the **SQL Editor**.
+3. Copy the entire contents of `schema.sql` located in the root of this repository.
+4. Run the script. This will create all tables, apply RLS policies, and insert the default Superadmin credentials.
 
 ### 2. Environment Variables
+You need to configure both the backend and frontend.
 
-**Backend (`backend/.env`):**
-Ensure your backend has the correct Supabase anon/service key and port:
+#### Backend (`backend/.env`)
+Create a `.env` file in the `backend/` folder:
 ```env
 PORT=4001
-SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_anon_or_service_key
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_SERVICE_KEY=your_supabase_service_role_key
+JWT_SECRET=any_strong_random_string
 ```
 
-**Frontend (`frontend/.env.local`):**
-Ensure your frontend connects to the backend and Supabase:
+#### Frontend (`frontend/.env.local`)
+Create a `.env.local` file in the `frontend/` folder:
 ```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 NEXT_PUBLIC_API_URL=http://localhost:4001
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
 ```
 
-### 3. Start the Application
+### 3. Running the Application
 
-You need to run both servers concurrently.
+You will need to run both servers simultaneously.
 
-**Start the Backend (Port 4001):**
+**Terminal 1 (Backend API):**
 ```bash
 cd backend
+npm install
 npx tsx src/index.ts
 ```
+*(The backend runs on `http://localhost:4001`)*
 
-**Start the Frontend (Port 4000):**
+**Terminal 2 (Frontend UI):**
 ```bash
 cd frontend
-npx next dev -p 4000
+npm install
+npm run dev -- -p 4000
 ```
-
-### 4. Access the App
-Open your browser and navigate to:
-[http://localhost:4000](http://localhost:4000)
-
-**Default Demo Credentials:**
-- Username: `superadmin`
-- Password: `super123`
+*(The frontend runs on `http://localhost:4000`)*
 
 ---
 
-## 🏗️ Architecture Notes
-- **Authentication**: Currently uses a custom `users` table check for demonstration. For production, migrate to Supabase Auth.
-- **Data Fetching**: The frontend uses `@supabase/ssr` to query the database directly for fast performance.
-- **RLS**: Ensure your Supabase tables (`users`, `companies`, `products`, `transactions`) have appropriate Row Level Security policies configured if opening to the public.
+## 🔑 Default Login
+Once both servers are running, open `http://localhost:4000` in your browser.
+
+- **Username**: `superadmin`
+- **Password**: `super123`
+
+1. Log in as Super Admin.
+2. Go to "Companies" and create your first shop.
+3. The system will auto-generate Store Admin credentials for you to test the POS and management dashboards.

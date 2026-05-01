@@ -1,100 +1,56 @@
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import dotenv from 'dotenv';
-import { createClient } from '@supabase/supabase-js';
+import authPlugin from './plugins/auth';
+
+import authRoutes from './routes/auth';
+import companiesRoutes from './routes/companies';
+import productsRoutes from './routes/products';
+import transactionsRoutes from './routes/transactions';
+import customersRoutes from './routes/customers';
+import suppliersRoutes from './routes/suppliers';
+import usersRoutes from './routes/users';
+import reportsRoutes from './routes/reports';
+import auditRoutes from './routes/audit';
+import subscriptionsRoutes from './routes/subscriptions';
+import settingsRoutes from './routes/settings';
 
 dotenv.config();
 
 const server = fastify({ logger: true });
 
-// Setup Supabase
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_KEY || '';
-export const supabase = createClient(supabaseUrl, supabaseKey);
+async function build() {
+  await server.register(cors, { 
+    origin: true,
+    methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  });
+  await server.register(authPlugin);
 
-// CORS
-await server.register(cors, {
-  origin: true
-});
+  // Health check
+  server.get('/api/health', async () => ({ status: 'ok' }));
 
-// --- AUTH ROUTES ---
-server.post('/api/auth/login', async (request, reply) => {
-  const { username, password } = request.body as any;
+  // Register Routes
+  await server.register(authRoutes);
+  await server.register(companiesRoutes);
+  await server.register(productsRoutes);
+  await server.register(transactionsRoutes);
+  await server.register(customersRoutes);
+  await server.register(suppliersRoutes);
+  await server.register(usersRoutes);
+  await server.register(reportsRoutes);
+  await server.register(auditRoutes);
+  await server.register(subscriptionsRoutes);
+  await server.register(settingsRoutes);
 
-  const { data: user, error } = await supabase
-    .from('users')
-    .select('*, companies(*)')
-    .eq('username', username)
-    .eq('password', password)
-    .single();
-
-  if (error || !user) {
-    return reply.status(401).send({ error: 'Invalid credentials' });
-  }
-
-  return user;
-});
-
-// --- COMPANY MANAGEMENT (Super Admin Only) ---
-server.get('/api/companies', async (request, reply) => {
-  const { data, error } = await supabase.from('companies').select('*').order('created_at', { ascending: false });
-  if (error) return reply.status(500).send(error);
-  return data;
-});
-
-server.post('/api/companies', async (request, reply) => {
-  const company = request.body as any;
-  const { data, error } = await supabase.from('companies').insert(company).select().single();
-  if (error) return reply.status(500).send(error);
-  return data;
-});
-
-// --- USER MANAGEMENT ---
-server.get('/api/users', async (request, reply) => {
-  const { company_id } = request.query as any;
-  let query = supabase.from('users').select('*');
-  if (company_id) query = query.eq('company_id', company_id);
-
-  const { data, error } = await query;
-  if (error) return reply.status(500).send(error);
-  return data;
-});
-
-server.post('/api/users', async (request, reply) => {
-  const newUser = request.body as any;
-  const { data, error } = await supabase.from('users').insert(newUser).select().single();
-  if (error) return reply.status(500).send(error);
-  return data;
-});
-
-// --- PRODUCTS ---
-server.get('/api/products', async (request, reply) => {
-  const { company_id } = request.query as any;
-  const { data, error } = await supabase.from('products').select('*').eq('company_id', company_id).order('name');
-  if (error) return reply.status(500).send(error);
-  return data;
-});
-
-// --- TRANSACTIONS ---
-server.post('/api/transactions', async (request, reply) => {
-  const txn = request.body as any;
-  const { data, error } = await supabase.from('transactions').insert(txn).select().single();
-  if (error) return reply.status(500).send(error);
-
-  // Stock update
-  for (const item of txn.items) {
-    const { data: p } = await supabase.from('products').select('stock').eq('id', item.id).single();
-    if (p) {
-      await supabase.from('products').update({ stock: p.stock - item.qty }).eq('id', item.id);
-    }
-  }
-  return data;
-});
+  return server;
+}
 
 const start = async () => {
   try {
-    const port = parseInt(process.env.PORT || '3001');
-    await server.listen({ port, host: '0.0.0.0' });
+    const app = await build();
+    const port = parseInt(process.env.PORT || '4001');
+    await app.listen({ port, host: '0.0.0.0' });
   } catch (err) {
     server.log.error(err);
     process.exit(1);
